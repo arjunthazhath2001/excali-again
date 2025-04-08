@@ -2,6 +2,9 @@ import express from 'express'
 import cors from 'cors'
 import { middleware } from './middleware'
 import {SignUpSchema,SignInSchema,RoomSchema} from "@repo/common/types"
+import bcrypt from 'bcrypt'
+import {prismaClient} from '@repo/db/client'
+
 
 const app= express()
 app.use(cors())
@@ -15,7 +18,20 @@ app.post('/signup', async (req,res)=>{
 
     if(!parsedBody.success){
         res.status(401).json({message:parsedBody.error.issues[0]})
+        return
     }
+
+    const {name,email,password}= parsedBody.data
+
+    const hashedPassword = await bcrypt.hash(password,5)
+
+    prismaClient.user.create({
+        name:name,
+        email,
+        password:hashedPassword
+    })
+
+    
 
 })
 
