@@ -1,6 +1,7 @@
 import { WebSocket, WebSocketServer } from 'ws';
 import { JwtSecret } from '@repo/backend-common/config';
 import jwt from 'jsonwebtoken'
+import { prismaClient } from "@repo/db/client"
 
 const wss = new WebSocketServer({ port: 8080 });
 
@@ -26,7 +27,7 @@ function checkUser(token: string): string | null {
 
     return decoded.userId
     } catch(e){
-        return "you are not authorised"
+        return null
     }
 }
 
@@ -57,7 +58,7 @@ wss.on('connection', function connection(ws, request) {
     })
 
 
-    ws.on('message', function message(data) {
+    ws.on('message', async function message(data) {
 
         const parsedData = JSON.parse(data as unknown as string)
 
@@ -71,6 +72,7 @@ wss.on('connection', function connection(ws, request) {
             }
 
             user?.rooms.push(parsedData.roomId)
+            
         }
 
         //intent is to leave_room and the data needed to perform that intent is roomId
@@ -93,6 +95,16 @@ wss.on('connection', function connection(ws, request) {
 
             const roomId= parsedData.roomId
             const message= parsedData.message
+
+            await prismaClient.chat.create({
+                data:{
+                    message,
+                    userId,
+                    roomId
+                }
+            })
+
+
             users.forEach(user=>{
                 if(user.rooms.includes(roomId)){
                     user.ws.send(JSON.stringify({
@@ -103,11 +115,6 @@ wss.on('connection', function connection(ws, request) {
                 }
             })
         }
-
-
-
-
-
 
 
     });
