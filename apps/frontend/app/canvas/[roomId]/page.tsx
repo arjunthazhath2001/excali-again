@@ -1,9 +1,6 @@
 "use client"
 import { initDraw } from "@/draw";
-import { ChartScatter } from "lucide-react";
 import { useEffect, useRef } from "react"
-
-
 
 
 export default function Canvas(){
