@@ -1,6 +1,5 @@
 import { HTTP_BACKEND } from "@/config";
 import axios from "axios"
-import { clear } from "console";
 
 
 type Shape = {
@@ -28,7 +27,11 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
     socket.onmessage=(event)=>{
         const message= JSON.parse(event.data)
 
-        if(message.type=="chat")
+        if(message.type=="chat"){
+            const parsedShape= JSON.parse(message.message)
+            existingShapes.push(parsedShape)
+            clearCanvas(existingShapes,canvas,ctx)
+        }
     }
 
 
@@ -48,14 +51,22 @@ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket
         clicked = false
         const width = e.clientX - startX;
         const height = e.clientY - startY;
-
-        existingShapes.push({
+        const shape: Shape={
             type: "rect",
             x: startX,
             y: startY,
             height,
             width
-        })
+        }
+        existingShapes.push(shape);
+
+
+        socket.send(JSON.stringify({
+            type:"chat",
+            message: JSON.stringify({
+                shape
+            })
+        }))
 
     })
 

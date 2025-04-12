@@ -11,10 +11,14 @@ export function RoomCanvas({roomId}:{roomId:string}) {
 
 
     useEffect(()=>{
-        const ws= new WebSocket(WS_URL)
+        const ws= new WebSocket(`${WS_URL}`)
 
         ws.onopen=()=>{
             setSocket(ws);
+            ws.send(JSON.stringify({
+                type:"join_room",
+                roomId
+            }))
         }
     },[])
 
