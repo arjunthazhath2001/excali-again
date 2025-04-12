@@ -107,7 +107,7 @@ app.post('/room', middleware, async (req, res) => {
     })
 
     if(room){
-        res.status(200).json({message:`${room.id} and ${room.createdAt}`})
+        res.status(200).json({Room:`${room.id} and created at: ${room.createdAt}`})
     }}
     catch(error){
         res.json("Error creating a room. Try later")
