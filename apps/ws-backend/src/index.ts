@@ -59,9 +59,15 @@ wss.on('connection', function connection(ws, request) {
 
 
     ws.on('message', async function message(data) {
+       let parsedData;
 
-        const parsedData = JSON.parse(data as unknown as string)
-
+       if(typeof data != "string"){
+        parsedData= JSON.parse(data.toString())
+       } else{
+            parsedData = JSON.parse(data)
+       }
+        
+        
 
         //intent is to join_room and the data needed to perform that intent is roomId
         if(parsedData.type==="join_room"){
@@ -94,13 +100,14 @@ wss.on('connection', function connection(ws, request) {
         if(parsedData.type==="chat"){
 
             const roomId= parsedData.roomId
+            const intRoomId= parseInt(roomId)
             const message= parsedData.message
 
             await prismaClient.chat.create({
                 data:{
                     message,
                     userId,
-                    roomId
+                    roomId:intRoomId
                 }
             })
 
