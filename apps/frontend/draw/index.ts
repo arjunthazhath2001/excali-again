@@ -1,5 +1,6 @@
 import { HTTP_BACKEND } from "@/config";
 import axios from "axios"
+import { clear } from "console";
 
 
 type Shape = {
@@ -16,16 +17,14 @@ type Shape = {
 }
 
 
-export function initDraw(canvas: HTMLCanvasElement) {
+export async function initDraw(canvas: HTMLCanvasElement, roomId: string) {
 
     const ctx = canvas.getContext("2d");
-    let existingShapes: Shape[] = []
+    let existingShapes: Shape[] = await getExistingShapes(roomId)
 
     if (!ctx) { return }
 
-    ctx.fillStyle = "rgba(0,0,0)"
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
-
+    clearCanvas(existingShapes,canvas,ctx) 
     let clicked = false
     let startX = 0
     let startY = 0
@@ -88,5 +87,12 @@ function clearCanvas(existingShapes: Shape[], canvas:HTMLCanvasElement, ctx: Can
 async function getExistingShapes(roomId:string){
     const res= await axios.get(`${HTTP_BACKEND}/chats/${roomId}`)
 
-    const messages= res.data.messages
+    const messages= res.data.messages;
+
+    const shapes= messages.map((x:{message:string})=>{
+      const messageData= JSON.parse(x.message)  
+      return messageData; 
+    })
+
+    return shapes
 }
