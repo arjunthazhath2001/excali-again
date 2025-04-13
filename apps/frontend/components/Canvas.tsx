@@ -2,19 +2,22 @@ import { initDraw } from "@/draw"
 import { useEffect, useRef, useState } from "react"
 import { IconButton } from "./IconButton"
 import { CircleIcon, Pencil, RectangleHorizontalIcon } from "lucide-react"
+import { Game } from "@/draw/Game"
 
 
-type Shape = "circle" | "rect" | "pencil"
+export type Tool = "circle" | "rect" | "pencil"
 
 
 export function Canvas({ roomId, socket }: { roomId: string, socket: WebSocket }) {
     const canvasRef = useRef<HTMLCanvasElement>(null)
-    const [selectedTool, setSelectedTool] = useState<Shape>("circle")
+
+    const [game,setGame]= useState<Game>();
+    const [selectedTool, setSelectedTool] = useState<Tool>("circle")
 
     useEffect(()=>{
-        //@ts-ignore
-        window.selectedTool= selectedTool; //this sets the tool name at the window level all the files in our frontend app can access the window and hence the name of the selected tool
-    },[selectedTool])
+        game?.setTool(selectedTool)
+        
+    },[selectedTool,game]) 
 
 
 
@@ -22,10 +25,14 @@ export function Canvas({ roomId, socket }: { roomId: string, socket: WebSocket }
     useEffect(() => {
 
         if (canvasRef.current) {
+            const g= new Game(canvasRef.current, roomId, socket)
+            setGame(g)
+        
 
-            initDraw(canvasRef.current, roomId, socket)
+        return ()=>{
+            g.destroy()
         }
-
+        }
     }, [canvasRef])
 
     return <div style={{
@@ -39,7 +46,7 @@ export function Canvas({ roomId, socket }: { roomId: string, socket: WebSocket }
 }
 
 
-function TopBar({ selectedTool, setSelectedTool }: { selectedTool: Shape, setSelectedTool: (s: Shape) => void }) {
+function TopBar({ selectedTool, setSelectedTool }: { selectedTool: Tool, setSelectedTool: (s: Tool) => void }) {
 
     return <div style={{ position: "fixed", top: 10, left: 10 }}>
         <div className="flex gap-4">

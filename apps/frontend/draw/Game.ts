@@ -1,5 +1,6 @@
 import { throwIfDisallowedDynamic } from "next/dist/server/app-render/dynamic-rendering";
 import { getExistingShapes } from "./http";
+import { Tool } from "@/components/Canvas";
 
 type Shape = {
     type: "rect";
@@ -30,7 +31,7 @@ export class Game {
     private socket: WebSocket
     private startX = 0;
     private startY = 0;
-    private selectedTool= "circle";
+    private selectedTool: Tool = "circle";
 
     constructor(canvas: HTMLCanvasElement, roomId: string, socket: WebSocket) {
         this.canvas = canvas;
@@ -44,13 +45,26 @@ export class Game {
         this.initMouseHandlers();
     }
 
-    setShape(tool:"circle"|"pencil"|"rect"){
-        
+    destroy(){
+        this.canvas.removeEventListener("mousedown", this.mouseDownHandler.bind(this))
+
+
+        this.canvas.removeEventListener("mouseup", this.mouseUpHandler.bind(this))
+
+
+        this.canvas.removeEventListener("mousemove", this.mouseMoveHandler.bind(this))
+
+    }
+
+    setTool(tool: "circle" | "pencil" | "rect") {
+
+        this.selectedTool = tool;
+
     }
 
     async init() {
         this.existingShapes = await getExistingShapes(this.roomId)
-
+        this.clearCanvas()
 
     }
 
@@ -80,7 +94,7 @@ export class Game {
             } else if (shape.type === "circle") {
 
                 this.ctx.beginPath()
-                this.ctx.arc(shape.centerX, shape.centerY, shape.radius, 0, Math.PI * 2)
+                this.ctx.arc(shape.centerX, shape.centerY, Math.abs(shape.radius), 0, Math.PI * 2)
                 this.ctx.stroke()
                 this.ctx.closePath()
             }
@@ -88,96 +102,103 @@ export class Game {
 
     }
 
-    initMouseHandlers() {
+    mouseDownHandler=(e)=> {
+        this.clicked = true
+        this.startX = e.clientX
+        this.startY = e.clientY
+    }
+    mouseUpHandler=(e)=> {
+        this.clicked = false
+        const width = e.clientX - this.startX;
+        const height = e.clientY - this.startY;
 
-        this.canvas.addEventListener("mousedown", (e) => {
-            this.clicked = true
-            this.startX = e.clientX
-            this.startY = e.clientY
-        })
+        const selectedTool = this.selectedTool
+
+        let shape: Shape | null = null;
 
 
-        this.canvas.addEventListener("mouseup", (e) => {
-            this.clicked = false
-            const width = e.clientX - this.startX;
-            const height = e.clientY - this.startY;
+        if (selectedTool === "rect") {
+            shape = {
+                type: "rect",
+                x: this.startX,
+                y: this.startY,
+                height,
+                width
+            }
 
-            //@ts-ignore
-            const selectedTool = window.selectedTool
+        } else if (selectedTool === "circle") {
 
-            let shape: Shape | null = null;
+            const radius = Math.max(width, height) / 2
 
+            shape = {
+                type: "circle",
+                radius: radius,
+                centerX: this.startX + radius,
+                centerY: this.startY + radius,
+
+            }
+
+        }
+
+        if (!shape) {
+            return
+        }
+
+        this.existingShapes.push(shape);
+
+        this.socket.send(JSON.stringify({
+            type: "chat",
+            message: JSON.stringify({
+                shape
+            }),
+            roomId: this.roomId
+        }))
+
+    }
+
+    mouseMoveHandler=(e)=> {
+        if (this.clicked) {
+            const width = e.clientX - this.startX
+            const height = e.clientY - this.startY
+
+            this.clearCanvas()
+
+            this.ctx.strokeStyle = "rgba(255,255,255)"
+
+
+            const selectedTool = this.selectedTool
 
             if (selectedTool === "rect") {
-                shape = {
-                    type: "rect",
-                    x: this.startX,
-                    y: this.startY,
-                    height,
-                    width
-                }
 
+                this.ctx.strokeRect(this.startX, this.startY, width, height)
             } else if (selectedTool === "circle") {
+                const radius = Math.max(width, height) / 2;
+                const centerX = this.startX + radius;
+                const centerY = this.startY + radius;
 
-                const radius = Math.max(width, height) / 2
-
-                shape = {
-                    type: "circle",
-                    radius: radius,
-                    centerX: this.startX + radius,
-                    centerY: this.startY + radius,
-
-                }
-
+                this.ctx.beginPath()
+                this.ctx.arc(centerX, centerY, Math.abs(radius), 0, Math.PI * 2)
+                this.ctx.stroke()
+                this.ctx.closePath()
             }
 
-            if (!shape) {
-                return
-            }
 
-            this.existingShapes.push(shape);
+        }
 
-            this.socket.send(JSON.stringify({
-                type: "chat",
-                message: JSON.stringify({
-                    shape
-                }),
-                roomId: this.roomId
-            }))
-
-        })
+    }
 
 
-        this.canvas.addEventListener("mousemove", (e) => {
-            if (this.clicked) {
-                const width = e.clientX - this.startX
-                const height = e.clientY - this.startY
-
-                this.clearCanvas()
-
-                this.ctx.strokeStyle = "rgba(255,255,255)"
-                //@ts-ignore
-                const selectedTool = window.selectedTool
-
-                if (selectedTool === "rect") {
-
-                    this.ctx.strokeRect(this.startX, this.startY, width, height)
-                } else if (selectedTool === "circle") {
-                    const radius = Math.max(width, height) / 2;
-                    const centerX = this.startX + radius;
-                    const centerY = this.startY + radius;
-
-                    this.ctx.beginPath()
-                    this.ctx.arc(centerX, centerY, radius, 0, Math.PI * 2)
-                    this.ctx.stroke()
-                    this.ctx.closePath()
-                }
 
 
-            }
-        })
+    initMouseHandlers() {
+
+        this.canvas.addEventListener("mousedown", this.mouseDownHandler)
 
 
+        this.canvas.addEventListener("mouseup", this.mouseUpHandler)
+
+
+        this.canvas.addEventListener("mousemove", this.mouseMoveHandler)
 
 
     }
