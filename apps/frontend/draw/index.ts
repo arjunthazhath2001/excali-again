@@ -1,3 +1,6 @@
+// WE ARE NO LONGER USING THIS FILE. INSTEAD WE TRANSFERRED OUR
+//LOGI TO GAME CLASS
+
 import { HTTP_BACKEND } from "@/config";
 import axios from "axios"
 
