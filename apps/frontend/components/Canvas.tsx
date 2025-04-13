@@ -12,7 +12,8 @@ export function Canvas({ roomId, socket }: { roomId: string, socket: WebSocket }
     const [selectedTool, setSelectedTool] = useState<Shape>("circle")
 
     useEffect(()=>{
-        window.selectedTool= selectedTool;
+        //@ts-ignore
+        window.selectedTool= selectedTool; //this sets the tool name at the window level all the files in our frontend app can access the window and hence the name of the selected tool
     },[selectedTool])
 
 
